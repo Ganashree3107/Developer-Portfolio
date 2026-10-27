@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ArrowDown, ArrowDownRight, ArrowRight, ArrowUpRight, Github, Linkedin,
   Mail, Menu, X, Sparkles, Code2, Database, BrainCircuit, Layers3,
@@ -57,6 +57,11 @@ const skillGroups = {
   ],
 }
 
+const stripWords = ['DESIGN MINDED', 'CODE CURIOUS', 'AI ENTHUSIAST', 'ALWAYS EVOLVING']
+
+// Inline style that staggers a scroll-reveal animation by `seconds`
+const delay = (seconds) => ({ '--d': `${seconds}s` })
+
 function ProjectVisual({ theme }) {
   if (theme === 'reflecto') return (
     <div className="visual visual-reflecto">
@@ -99,6 +104,50 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const email = 'gana2007shree@gmail.com'
+  const heroRef = useRef(null)
+
+  // Fade elements marked with data-reveal in as they scroll into view
+  useEffect(() => {
+    const items = document.querySelectorAll('[data-reveal]')
+    const show = (el) => el.setAttribute('data-shown', '')
+    if (!('IntersectionObserver' in window)) { items.forEach(show); return }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) { show(entry.target); observer.unobserve(entry.target) }
+      })
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' })
+    items.forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
+  }, [])
+
+  // Hero artwork drifts slightly with the mouse (desktop only)
+  useEffect(() => {
+    const hero = heroRef.current
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (!hero || !finePointer || reduceMotion) return
+    let frame = 0
+    const onMove = (e) => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        const r = hero.getBoundingClientRect()
+        hero.style.setProperty('--px', (((e.clientX - r.left) / r.width) * 2 - 1).toFixed(3))
+        hero.style.setProperty('--py', (((e.clientY - r.top) / r.height) * 2 - 1).toFixed(3))
+      })
+    }
+    const onLeave = () => {
+      cancelAnimationFrame(frame)
+      hero.style.setProperty('--px', '0')
+      hero.style.setProperty('--py', '0')
+    }
+    hero.addEventListener('pointermove', onMove)
+    hero.addEventListener('pointerleave', onLeave)
+    return () => {
+      cancelAnimationFrame(frame)
+      hero.removeEventListener('pointermove', onMove)
+      hero.removeEventListener('pointerleave', onLeave)
+    }
+  }, [])
 
   const closeMenu = () => setMenuOpen(false)
   const copyEmail = async () => {
@@ -113,6 +162,7 @@ function App() {
 
   return (
     <div className="site-shell">
+      <div className="scroll-progress" aria-hidden="true" />
       <div className="ambient ambient-one" /><div className="ambient ambient-two" />
       <header className="topbar">
         <a className="brand" href="#home" onClick={closeMenu} aria-label="Ganashree home"><span className="brand-mark">G<span>.</span></span><span className="brand-name">Ganashree<span> / PORTFOLIO</span></span></a>
@@ -124,7 +174,7 @@ function App() {
       </header>
 
       <main>
-        <section className="hero section-wrap" id="home">
+        <section className="hero section-wrap" id="home" ref={heroRef}>
           <div className="hero-copy">
             <div className="availability"><span className="pulse" /> OPEN TO OPPORTUNITIES <span className="availability-line"/></div>
             <p className="hero-kicker">HELLO, WORLD! I'M</p>
@@ -144,24 +194,27 @@ function App() {
           <div className="hero-side-note">PORTFOLIO / 2026</div>
         </section>
 
-        <section className="intro-strip"><div className="strip-inner"><span>DESIGN MINDED</span><i>✳</i><span>CODE CURIOUS</span><i>✳</i><span>AI ENTHUSIAST</span><i>✳</i><span>ALWAYS EVOLVING</span><i>✳</i><span>DESIGN MINDED</span></div></section>
+        <section className="intro-strip" aria-label="Design minded, code curious, AI enthusiast, always evolving">
+          {/* Words repeat 6 times; the track scrolls by half its width so the loop is seamless */}
+          <div className="strip-inner" aria-hidden="true">{[0, 1, 2, 3, 4, 5].map(round => stripWords.map(word => <span className="strip-item" key={`${round}-${word}`}>{word}<i>✳</i></span>))}</div>
+        </section>
 
         <section className="section-wrap section-block about-section" id="about">
-          <div className="section-label"><span>01</span> / THE PERSON BEHIND THE PIXELS</div>
-          <div className="about-grid"><div><h2>Curiosity first.<br/><span className="muted-heading">Possibility always.</span></h2></div><div className="about-copy"><p className="lead">I'm a BCA student exploring the intersection of <span className="text-lilac">web development</span>, thoughtful user experiences, and intelligent technology.</p><p>I enjoy taking an idea from a rough concept to something people can actually use. Each project is a chance to learn deeper, solve a real problem, and make the details feel intentional.</p><a className="text-link" href="#projects">A look at what I build <ArrowRight size={16}/></a></div></div>
-          <div className="about-facts"><div><span className="fact-icon"><Code2 size={17}/></span><b>Build with purpose</b><p>Useful, responsive interfaces</p></div><div><span className="fact-icon"><BrainCircuit size={17}/></span><b>Explore what’s next</b><p>AI, computer vision & more</p></div><div><span className="fact-icon"><Layers3 size={17}/></span><b>Learn by making</b><p>Projects over just tutorials</p></div></div>
+          <div className="section-label" data-reveal><span>01</span> / THE PERSON BEHIND THE PIXELS</div>
+          <div className="about-grid"><div data-reveal><h2>Curiosity first.<br/><span className="muted-heading">Possibility always.</span></h2></div><div className="about-copy" data-reveal style={delay(0.15)}><p className="lead">I'm a BCA student exploring the intersection of <span className="text-lilac">web development</span>, thoughtful user experiences, and intelligent technology.</p><p>I enjoy taking an idea from a rough concept to something people can actually use. Each project is a chance to learn deeper, solve a real problem, and make the details feel intentional.</p><a className="text-link" href="#projects">A look at what I build <ArrowRight size={16}/></a></div></div>
+          <div className="about-facts"><div data-reveal><span className="fact-icon"><Code2 size={17}/></span><b>Build with purpose</b><p>Useful, responsive interfaces</p></div><div data-reveal style={delay(0.12)}><span className="fact-icon"><BrainCircuit size={17}/></span><b>Explore what’s next</b><p>AI, computer vision & more</p></div><div data-reveal style={delay(0.24)}><span className="fact-icon"><Layers3 size={17}/></span><b>Learn by making</b><p>Projects over just tutorials</p></div></div>
         </section>
 
         <section className="section-wrap section-block skills-section" id="skills">
-          <div className="section-label"><span>02</span> / MY TOOLKIT</div>
-          <div className="section-heading-row"><h2>Tools of the <span className="muted-heading">trade.</span></h2><p>A growing toolkit, built one project <br/>and one problem at a time.</p></div>
-          <div className="skills-panel"><div className="skill-tabs">{Object.keys(skillGroups).map(group => <button key={group} className={activeSkill === group ? 'skill-tab active' : 'skill-tab'} onClick={() => setActiveSkill(group)}>{group}<ArrowUpRight size={14}/></button>)}</div><div className="skill-grid">{skillGroups[activeSkill].map(([name, desc], i) => <div className="skill-item" key={name}><span className="skill-number">0{i+1}</span><div><b>{name}</b><p>{desc}</p></div><ArrowUpRight className="skill-arrow" size={15}/></div>)}</div><div className="skills-foot"><span><span className="pulse"/> CURRENTLY LEARNING & BUILDING</span><span>MORE TO COME ↗</span></div></div>
+          <div className="section-label" data-reveal><span>02</span> / MY TOOLKIT</div>
+          <div className="section-heading-row" data-reveal><h2>Tools of the <span className="muted-heading">trade.</span></h2><p>A growing toolkit, built one project <br/>and one problem at a time.</p></div>
+          <div className="skills-panel" data-reveal style={delay(0.1)}><div className="skill-tabs">{Object.keys(skillGroups).map(group => <button key={group} className={activeSkill === group ? 'skill-tab active' : 'skill-tab'} onClick={() => setActiveSkill(group)}>{group}<ArrowUpRight size={14}/></button>)}</div><div className="skill-grid" key={activeSkill}>{skillGroups[activeSkill].map(([name, desc], i) => <div className="skill-item" key={name} style={{ '--i': i }}><span className="skill-number">0{i+1}</span><div><b>{name}</b><p>{desc}</p></div><ArrowUpRight className="skill-arrow" size={15}/></div>)}</div><div className="skills-foot"><span><span className="pulse"/> CURRENTLY LEARNING & BUILDING</span><span>MORE TO COME ↗</span></div></div>
         </section>
 
         <section className="section-wrap section-block projects-section" id="projects">
-          <div className="section-label"><span>03</span> / SELECTED WORK</div>
-          <div className="section-heading-row projects-heading"><h2>Made with intent.<br/><span className="muted-heading">Built to explore.</span></h2><p>Three projects. Different challenges. <br/>One continuous learning journey.</p></div>
-          <div className="project-list">{projects.map((project) => <article className={`project-card ${project.featured ? 'project-featured' : 'project-small'}`} key={project.number}>
+          <div className="section-label" data-reveal><span>03</span> / SELECTED WORK</div>
+          <div className="section-heading-row projects-heading" data-reveal><h2>Made with intent.<br/><span className="muted-heading">Built to explore.</span></h2><p>Three projects. Different challenges. <br/>One continuous learning journey.</p></div>
+          <div className="project-list">{projects.map((project, index) => <article className={`project-card ${project.featured ? 'project-featured' : 'project-small'}`} key={project.number} data-reveal style={delay(index === 2 ? 0.14 : 0)}>
             <div className="project-visual-wrap"><ProjectVisual theme={project.theme}/><span className="project-count">{project.number} / 03</span></div>
             <div className="project-info"><div className="project-type">{project.type}</div><div className="project-title-row"><h3>{project.name}<span>.</span></h3>{project.link
               ? <a className="project-open" href={project.link} target="_blank" rel="noreferrer" aria-label={`Open ${project.name} live site`} title="View live site"><ArrowUpRight size={19}/></a>
@@ -170,11 +223,11 @@ function App() {
         </section>
 
         <section className="section-wrap section-block journey-section" id="journey">
-          <div className="section-label"><span>04</span> / THE JOURNEY SO FAR</div>
-          <div className="journey-grid"><div><h2>Still learning.<br/><span className="muted-heading">Never standing still.</span></h2><p className="journey-intro">The goal isn't to know everything. It's to keep asking better questions and building better things.</p></div><div className="timeline"><div className="timeline-item"><span className="timeline-dot"/><div className="timeline-date">CURRENTLY</div><h3>Bachelor of Computer Applications</h3><p>Building a foundation in computer science while exploring web development, databases, networking and AI.</p><span className="timeline-chip"><GraduationCap size={13}/> BCA STUDENT</span></div><div className="timeline-item"><span className="timeline-dot"/><div className="timeline-date">ALONG THE WAY</div><h3>Learning through projects</h3><p>Applying new concepts through Reflecto, Pearl Promise and hands-on frontend experiments.</p><span className="timeline-chip"><Terminal size={13}/> BUILD · TEST · LEARN</span></div><div className="timeline-item"><span className="timeline-dot"/><div className="timeline-date">NEXT CHAPTER</div><h3>Growing into a full-stack developer</h3><p>Deepening my skills in modern frontend development, backend APIs and practical AI integration.</p><span className="timeline-chip"><Sparkles size={13}/> IN PROGRESS</span></div></div></div>
+          <div className="section-label" data-reveal><span>04</span> / THE JOURNEY SO FAR</div>
+          <div className="journey-grid"><div data-reveal><h2>Still learning.<br/><span className="muted-heading">Never standing still.</span></h2><p className="journey-intro">The goal isn't to know everything. It's to keep asking better questions and building better things.</p></div><div className="timeline" data-reveal="line"><div className="timeline-item" data-reveal style={delay(0.1)}><span className="timeline-dot"/><div className="timeline-date">CURRENTLY</div><h3>Bachelor of Computer Applications</h3><p>Building a foundation in computer science while exploring web development, databases, networking and AI.</p><span className="timeline-chip"><GraduationCap size={13}/> BCA STUDENT</span></div><div className="timeline-item" data-reveal style={delay(0.25)}><span className="timeline-dot"/><div className="timeline-date">ALONG THE WAY</div><h3>Learning through projects</h3><p>Applying new concepts through Reflecto, Pearl Promise and hands-on frontend experiments.</p><span className="timeline-chip"><Terminal size={13}/> BUILD · TEST · LEARN</span></div><div className="timeline-item" data-reveal style={delay(0.4)}><span className="timeline-dot"/><div className="timeline-date">NEXT CHAPTER</div><h3>Growing into a full-stack developer</h3><p>Deepening my skills in modern frontend development, backend APIs and practical AI integration.</p><span className="timeline-chip"><Sparkles size={13}/> IN PROGRESS</span></div></div></div>
         </section>
 
-        <section className="contact-section" id="contact"><div className="contact-orb"/><div className="section-wrap contact-inner"><div className="section-label"><span>05</span> / YOUR TURN</div><p className="contact-kicker">HAVE A PROJECT OR AN IDEA?</p><h2>Let's make<br/>something <span>meaningful.</span></h2><p className="contact-copy">I'm always happy to connect, exchange ideas, and explore opportunities to build something good.</p><div className="contact-actions"><button className="button button-primary" onClick={copyEmail}>{copied ? <CheckCircle2 size={17}/> : <Mail size={17}/>} {copied ? 'Email copied!' : 'Copy my email'} <ArrowUpRight size={16}/></button><a className="button button-quiet" href="https://github.com/Ganashree3107" target="_blank" rel="noreferrer"><Github size={17}/> Find me on GitHub <ArrowUpRight size={16}/></a></div><div className="contact-bottom"><span>GOOD THINGS START WITH A HELLO.</span><span>Ganashree © 2026</span></div></div></section>
+        <section className="contact-section" id="contact"><div className="contact-orb"/><div className="section-wrap contact-inner"><div className="section-label" data-reveal><span>05</span> / YOUR TURN</div><p className="contact-kicker" data-reveal style={delay(0.05)}>HAVE A PROJECT OR AN IDEA?</p><h2 data-reveal style={delay(0.12)}>Let's make<br/>something <span>meaningful.</span></h2><p className="contact-copy" data-reveal style={delay(0.22)}>I'm always happy to connect, exchange ideas, and explore opportunities to build something good.</p><div className="contact-actions" data-reveal style={delay(0.32)}><button className="button button-primary" onClick={copyEmail}>{copied ? <CheckCircle2 size={17}/> : <Mail size={17}/>} {copied ? 'Email copied!' : 'Copy my email'} <ArrowUpRight size={16}/></button><a className="button button-quiet" href="https://github.com/Ganashree3107" target="_blank" rel="noreferrer"><Github size={17}/> Find me on GitHub <ArrowUpRight size={16}/></a></div><div className="contact-bottom"><span>GOOD THINGS START WITH A HELLO.</span><span>Ganashree © 2026</span></div></div></section>
       </main>
       <footer className="footer"><a className="brand" href="#home"><span className="brand-mark">G<span>.</span></span><span className="brand-name">Ganashree<span> / PORTFOLIO</span></span></a><span>DESIGNED WITH CURIOSITY <span className="footer-heart">✳</span> BUILT WITH CODE</span><a href="#home" className="back-top">BACK TO TOP <ArrowUpRight size={14}/></a></footer>
     </div>
